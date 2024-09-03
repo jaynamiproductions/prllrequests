@@ -3,18 +3,24 @@ import requests
 import concurrent.futures
 
 class PrllRequests:
-    def __init__(self, url, max_rows, limit):
+    def __init__(self, url, max_rows, chunksize, method):
         self.url = url
         self.max_rows = max_rows
-        self.limit = limit
+        self.chunksize = chunksize
+        self.method = method
     
     def get_request(self):
-        offsets = list(range(0,self.max_rows, self.limit)) 
-        stable = [self.limit, self.url]
+        offsets = list(range(0,self.max_rows, self.chunksize)) 
+        stable = [self.chunksize, self.url]
         params = [[x] + stable for x in offsets]
-
         results = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        
+        if self.method == 'process':
+            Executor = concurrent.futures.ProcessPoolExecutor
+        elif self.method == 'thread':
+            Executor = concurrent.futures.ThreadPoolExecutor
+
+        with Executor() as executor:
             futures = [executor.submit(Helper.prll_requests, param) for param in params]
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
